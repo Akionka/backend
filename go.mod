@@ -11,5 +11,7 @@ require (
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/onsi/ginkgo v1.15.1 // indirect
 	github.com/onsi/gomega v1.11.0 // indirect
+	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/viper v1.7.1
 	google.golang.org/appengine v1.6.7 // indirect
 )

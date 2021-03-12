@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/go-redis/redis"
+	"time"
 )
 
 const (
@@ -10,7 +11,7 @@ const (
 )
 
 const (
-	redisTokenExpiration      = 0
+	redisTokenExpiration      = 48 * time.Hour
 	redisTokenCountExpiration = 0
 )
 

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 
 	"github.com/kate-network/backend/cache"
@@ -51,6 +52,11 @@ func NewServer(db *storage.DB, ch *cache.Cache) *Service {
 
 func (s *Service) Init() {
 	apiGroup := s.e.Group("/api")
+	s.e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowCredentials: true,
+	}))
 
 	authService := &AuthService{}
 	seedService := &SeedService{}

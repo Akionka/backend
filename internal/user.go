@@ -54,9 +54,9 @@ func (s *UserService) me(c echo.Context) error {
 }
 
 type UserRegReq struct {
-	Login    string
-	Password string
-	Username string
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	Username string `json:"username"`
 }
 
 func (s *UserService) reg(c echo.Context) error {
