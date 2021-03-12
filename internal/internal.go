@@ -12,6 +12,7 @@ import (
 const (
 	ErrRequiredFields = iota
 	ErrUserNotFound
+	ErrUserExist
 	ErrTokenEmpty
 )
 
