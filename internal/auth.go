@@ -69,8 +69,9 @@ func (s *AuthService) user(c echo.Context) error {
 
 	if !req.ServerCookie {
 		c.SetCookie(&http.Cookie{
-			Name:  "token",
-			Value: token,
+			Name:     "token",
+			Value:    token,
+			SameSite: http.SameSiteNoneMode,
 		})
 	}
 
