@@ -77,5 +77,5 @@ func (s *UserService) reg(c echo.Context) error {
 		return wrapError(ErrUserExist, "user is exist")
 	}
 
-	return c.NoContent(http.StatusOK)
+	return c.NoContent(http.StatusNoContent)
 }

@@ -23,9 +23,10 @@ func (s *AuthService) Setup(parent Service, api *echo.Group) {
 }
 
 type userAuthReq struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-	Scope    int    `json:"scope"`
+	Login        string `json:"login"`
+	Password     string `json:"password"`
+	Scope        int    `json:"scope"`
+	ServerCookie bool   `json:"server_cookie"`
 }
 
 type UserAuthResp struct {
@@ -63,6 +64,13 @@ func (s *AuthService) user(c echo.Context) error {
 
 	if err := s.ch.SetToken(token, t); err != nil {
 		return err
+	}
+
+	if !req.ServerCookie {
+		c.SetCookie(&http.Cookie{
+			Name:  "token",
+			Value: token,
+		})
 	}
 
 	return c.JSON(http.StatusOK, UserAuthResp{

@@ -2,12 +2,12 @@ package internal
 
 import (
 	"fmt"
-	"github.com/labstack/echo/v4/middleware"
-	"net/http"
-
 	"github.com/kate-network/backend/cache"
 	"github.com/kate-network/backend/storage"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 const (
@@ -57,6 +57,7 @@ func (s *Service) Init() {
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 		AllowCredentials: true,
 	}))
+	s.e.HTTPErrorHandler = s.handlerError
 
 	authService := &AuthService{}
 	seedService := &SeedService{}
@@ -99,4 +100,25 @@ func (s *Service) token(c echo.Context) (string, error) {
 		return "", fmt.Errorf("token header is empty")
 	}
 	return token, nil
+}
+
+type errorResp struct {
+	Code  int         `json:"code"`
+	Error interface{} `json:"error"`
+}
+
+func (s *Service) handlerError(err error, c echo.Context) {
+	var resp errorResp
+	if he, ok := err.(*echo.HTTPError); ok {
+		resp.Code = he.Code
+		resp.Error = he.Message
+	} else {
+		resp.Code = http.StatusConflict
+		resp.Error = err.Error()
+	}
+	logrus.Error(err)
+	err = c.JSON(resp.Code, resp)
+	if err != nil {
+		logrus.Errorln(err)
+	}
 }
