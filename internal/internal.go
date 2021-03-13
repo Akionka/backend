@@ -11,9 +11,11 @@ import (
 )
 
 const (
-	ErrRequiredFields = iota
-	ErrUserNotFound
+	ErrSystemError = iota
+	ErrRequiredFields
+	ErrNotFound
 	ErrUserExist
+	ErrForbidden
 	ErrTokenEmpty
 )
 
@@ -78,11 +80,24 @@ func (s *Service) Listen(address string) error {
 	return s.e.Start(address)
 }
 
+type Error struct {
+	Code    int
+	Message interface{}
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf(`{"code":"%d","error":"%s"}`, e.Code, e.Message)
+}
+
+func newError(code int, message interface{}) *Error {
+	return &Error{
+		Code:    code,
+		Message: message,
+	}
+}
+
 func wrapError(code int, err interface{}) error {
-	return echo.NewHTTPError(http.StatusConflict, map[string]interface{}{
-		"code":  code,
-		"error": err,
-	})
+	return newError(code, err)
 }
 
 func wrapForbiddenError(err ...error) error {
@@ -90,7 +105,15 @@ func wrapForbiddenError(err ...error) error {
 	if err != nil {
 		errMsg = err[0].Error()
 	}
-	return echo.NewHTTPError(http.StatusForbidden, errMsg)
+	return newError(ErrForbidden, errMsg)
+}
+
+func wrapNotFoundError(err ...error) error {
+	errMsg := "unknown not found"
+	if err != nil {
+		errMsg = err[0].Error()
+	}
+	return newError(ErrNotFound, errMsg)
 }
 
 // tokens gets token
@@ -108,16 +131,19 @@ type errorResp struct {
 }
 
 func (s *Service) handlerError(err error, c echo.Context) {
-	var resp errorResp
 	if he, ok := err.(*echo.HTTPError); ok {
-		resp.Code = he.Code
-		resp.Error = he.Message
+		err = c.JSON(he.Code, errorResp{
+			Code:  ErrSystemError,
+			Error: he.Message,
+		})
+	} else if he, ok := err.(*Error); ok {
+		err = c.String(http.StatusConflict, he.Error())
 	} else {
-		resp.Code = http.StatusConflict
-		resp.Error = err.Error()
+		err = c.JSON(http.StatusInternalServerError, errorResp{
+			Code:  ErrSystemError,
+			Error: err.Error(),
+		})
 	}
-	logrus.Error(err)
-	err = c.JSON(resp.Code, resp)
 	if err != nil {
 		logrus.Errorln(err)
 	}
