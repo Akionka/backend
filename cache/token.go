@@ -41,6 +41,9 @@ func (c *Cache) Token(token string) (t Token, _ error) {
 	if err != nil {
 		return t, err
 	}
+	if s == "" {
+		return t, fmt.Errorf("invalid token")
+	}
 
 	t.Parse(s)
 	return t, nil
