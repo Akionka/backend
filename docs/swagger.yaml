@@ -53,6 +53,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
+  /find/{param}:
+    get:
+      description: "Find by username or id"
+      parameters:
+        - in: path
+          required: true
+          name: param
+          description: "Key for finding by username or id"
+          schema:
+            type: string
+            minimum: 1
+      tags:
+        - "users"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
 components:
   schemas:
     User:
