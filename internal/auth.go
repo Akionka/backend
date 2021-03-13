@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -42,16 +43,16 @@ func (s *AuthService) user(c echo.Context) error {
 	}
 
 	if req.Login == "" || req.Password == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "required fields are not filled in")
+		return wrapError(ErrRequiredFields, "required fields are not filled in")
 	}
 
 	user, err := s.db.Users.ByLogin(req.Login)
 	if err != nil {
-		return wrapError(ErrUserNotFound, "user is not exists")
+		return wrapNotFoundError(fmt.Errorf("user is not exist"))
 	}
 
 	if user.Password != req.Password {
-		return wrapError(ErrUserNotFound, "user is not exists")
+		return wrapNotFoundError(fmt.Errorf("user is not exist"))
 	}
 
 	scope := 32768 // 2^5

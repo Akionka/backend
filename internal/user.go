@@ -17,8 +17,8 @@ func (s *UserService) Pref() string {
 func (s *UserService) Setup(parent Service, api *echo.Group) {
 	s.Service = parent
 
-	api.GET("/me", s.me)
 	api.POST("/reg", s.reg)
+	api.GET("/me", s.me, s.authenticated)
 }
 
 type User struct {
@@ -32,17 +32,14 @@ type UserMeResp struct {
 }
 
 func (s *UserService) me(c echo.Context) error {
-	token, err := s.token(c)
-	if err != nil {
-		return wrapForbiddenError(err)
-	}
+	token := c.Get("token").(string)
 	t, err := s.ch.Token(token)
 	if err != nil {
 		return wrapForbiddenError(err)
 	}
 	user, err := s.db.Users.ByID(t.ID)
 	if err != nil {
-		return err
+		return wrapForbiddenError(err)
 	}
 	return c.JSON(http.StatusOK, UserMeResp{
 		User{

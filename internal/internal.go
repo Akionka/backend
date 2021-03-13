@@ -148,3 +148,21 @@ func (s *Service) handlerError(err error, c echo.Context) {
 		logrus.Errorln(err)
 	}
 }
+
+func (s *Service) authenticated(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		token, err := s.token(c)
+		if err != nil {
+			return err
+		}
+		t, err := s.ch.Token(token)
+		if err != nil {
+			return err
+		}
+		if t.ID == 0 {
+			return wrapForbiddenError()
+		}
+		c.Set("token", token)
+		return next(c)
+	}
+}
