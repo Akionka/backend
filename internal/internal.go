@@ -157,7 +157,7 @@ func (s *Service) authenticated(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		t, err := s.ch.Token(token)
 		if err != nil {
-			return err
+			return wrapForbiddenError(err)
 		}
 		if t.ID == 0 {
 			return wrapForbiddenError()

@@ -1,9 +1,11 @@
 package internal
 
 import (
+	"fmt"
 	"github.com/kate-network/backend/storage"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 )
 
 type UserService struct {
@@ -19,12 +21,21 @@ func (s *UserService) Setup(parent Service, api *echo.Group) {
 
 	api.POST("/reg", s.reg)
 	api.GET("/me", s.me, s.authenticated)
+	api.GET("/find/:param", s.find, s.authenticated)
 }
 
 type User struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
-	Scope    int    `json:"scope"`
+	Scope    *int   `json:"scope,omitempty"`
+}
+
+func newUser(user storage.User) User {
+	return User{
+		ID:       user.ID,
+		Username: user.Username,
+		Scope:    nil,
+	}
 }
 
 type UserMeResp struct {
@@ -45,7 +56,7 @@ func (s *UserService) me(c echo.Context) error {
 		User{
 			ID:       t.ID,
 			Username: user.Username,
-			Scope:    t.Scope,
+			Scope:    &t.Scope,
 		},
 	})
 }
@@ -75,4 +86,24 @@ func (s *UserService) reg(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+type UsersFindResp struct {
+	User
+}
+
+func (s *UserService) find(c echo.Context) (err error) {
+	var user storage.User
+	param := c.Param("param")
+	id, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		user, err = s.db.Users.ByUsername(param)
+	} else {
+		user, err = s.db.Users.ByID(id)
+	}
+	if err != nil {
+		return wrapNotFoundError(fmt.Errorf("user not found"))
+	}
+	u := newUser(user)
+	return c.JSON(http.StatusOK, u)
 }

@@ -7,8 +7,9 @@ import (
 type (
 	UsersStorage interface {
 		Create(*User) error
-		ByLogin(string) (User, error)
 		ByID(int64) (User, error)
+		ByLogin(string) (User, error)
+		ByUsername(string) (User, error)
 	}
 
 	Users struct {
@@ -37,4 +38,9 @@ func (db *Users) ByLogin(login string) (u User, _ error) {
 func (db *Users) ByID(id int64) (u User, _ error) {
 	const q = "SELECT * FROM users WHERE id = ?"
 	return u, db.Get(&u, q, id)
+}
+
+func (db *Users) ByUsername(username string) (u User, _ error) {
+	const q = "SELECT * FROM users WHERE username = ?"
+	return u, db.Get(&u, q, username)
 }
