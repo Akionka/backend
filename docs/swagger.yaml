@@ -1,0 +1,100 @@
+openapi: 3.0.0
+info:
+  description: API Kate Social
+  version: 1.0.0
+  title: Kate API
+tags:
+  - name: auth
+    externalDocs:
+      url: "/api"
+    description: Working with access to other creatures
+  - name: users
+paths:
+  /user:
+    post:
+      tags:
+        - "auth"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthUserReq"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResp"
+
+  /reg:
+    post:
+      tags:
+        - "users"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsersRegReq"
+      responses:
+        "204":
+          description: ""
+  /me:
+    get:
+      tags:
+        - "users"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+components:
+  schemas:
+    User:
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        scope:
+          type: integer
+
+    AuthUserReq:
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+        scope:
+          type: integer
+        server_cookie:
+          type: boolean
+          description: "Allow server to create cookies"
+      required:
+        - login
+        - password
+    AuthUserResp:
+      properties:
+        id:
+          type: string
+        token:
+          type: string
+        scope:
+          type: integer
+    UsersRegReq:
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+        username:
+          type: string
+
+servers:
+  - description: SwaggerHub API Auto Mocking
+    url: http://example.com
