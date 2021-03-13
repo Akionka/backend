@@ -24,8 +24,8 @@ type (
 )
 
 func (db *Users) Create(user *User) error {
-	const q = "INSERT INTO users (id, login, password, username) VALUES (?, ?, ?, ?)"
-	_, err := db.Exec(q, user.ID, user.Login, user.Password, user.Username)
+	const q = "INSERT INTO users (login, password, username) VALUES (?, ?, ?)"
+	_, err := db.Exec(q, user.Login, user.Password, user.Username)
 	return err
 }
 
