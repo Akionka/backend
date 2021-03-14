@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/AlekSi/pointer"
+	"github.com/gorilla/websocket"
 	"github.com/kate-network/backend/cache"
 	"github.com/kate-network/backend/storage"
 	"github.com/labstack/echo/v4"
@@ -18,6 +21,12 @@ const (
 	ErrForbidden
 	ErrTokenEmpty
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 type Service struct {
 	e  *echo.Echo
@@ -53,27 +62,56 @@ func NewServer(db *storage.DB, ch *cache.Cache) *Service {
 }
 
 func (s *Service) Init() {
-	apiGroup := s.e.Group("/api")
+	s.e.Use(fixContext)
 	s.e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Token"},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "UserToken"},
 		AllowCredentials: true,
 	}))
 	s.e.HTTPErrorHandler = s.handlerError
+	apiGroup := s.e.Group("/api")
 
 	authService := &AuthService{}
 	seedService := &SeedService{}
 	userService := &UserService{}
+	messageService := &MessageService{}
 
 	s.add(apiGroup, authService)
 	s.add(apiGroup, seedService)
 	s.add(apiGroup, userService)
+	s.add(apiGroup, messageService)
 }
 
 // add connects custom services for working with the framework and the system itself
 func (s Service) add(parentGroup *echo.Group, customService CustomService) {
 	group := parentGroup.Group(customService.Pref())
 	customService.Setup(s, group)
+}
+
+type Response struct {
+	Ok       bool            `json:"ok"`
+	Response json.RawMessage `json:"response,omitempty"`
+	Code     *int            `json:"code,omitempty"`
+	Message  *string         `json:"message,omitempty"`
+}
+
+type Context struct {
+	echo.Context
+}
+
+func (c *Context) json(i interface{}) error {
+	b, err := json.Marshal(i)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, &Response{
+		Response: b,
+		Ok:       true,
+	})
+}
+
+func (c *Context) nocontent() error {
+	return c.JSON(http.StatusOK, &Response{Response: make([]byte, 0), Ok: true})
 }
 
 func (s *Service) Listen(address string) error {
@@ -86,7 +124,7 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf(`{"code":"%d","error":"%s"}`, e.Code, e.Message)
+	return fmt.Sprintf(`{"ok":false,"code":"%d","message":"%s"}`, e.Code, e.Message)
 }
 
 func newError(code int, message interface{}) *Error {
@@ -125,23 +163,18 @@ func (s *Service) token(c echo.Context) (string, error) {
 	return token, nil
 }
 
-type errorResp struct {
-	Code  int         `json:"code"`
-	Error interface{} `json:"error"`
-}
-
 func (s *Service) handlerError(err error, c echo.Context) {
 	if he, ok := err.(*echo.HTTPError); ok {
-		err = c.JSON(he.Code, errorResp{
-			Code:  ErrSystemError,
-			Error: he.Message,
+		err = c.JSON(http.StatusOK, Response{
+			Code:    pointer.ToInt(ErrSystemError),
+			Message: pointer.ToString(he.Message.(string)),
 		})
 	} else if he, ok := err.(*Error); ok {
 		err = c.String(http.StatusConflict, he.Error())
 	} else {
-		err = c.JSON(http.StatusInternalServerError, errorResp{
-			Code:  ErrSystemError,
-			Error: err.Error(),
+		err = c.JSON(http.StatusInternalServerError, Response{
+			Code:    pointer.ToInt(ErrSystemError),
+			Message: pointer.ToString(err.Error()),
 		})
 	}
 	if err != nil {
@@ -155,7 +188,7 @@ func (s *Service) authenticated(next echo.HandlerFunc) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		t, err := s.ch.Token(token)
+		t, err := s.ch.UserToken(token)
 		if err != nil {
 			return wrapForbiddenError(err)
 		}
@@ -164,5 +197,11 @@ func (s *Service) authenticated(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		c.Set("token", token)
 		return next(c)
+	}
+}
+
+func fixContext(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return next(&Context{c})
 	}
 }

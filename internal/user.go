@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/kate-network/backend/storage"
 	"github.com/labstack/echo/v4"
-	"net/http"
 	"strconv"
 )
 
@@ -19,7 +18,6 @@ func (s *UserService) Pref() string {
 func (s *UserService) Setup(parent Service, api *echo.Group) {
 	s.Service = parent
 
-	api.POST("/reg", s.reg)
 	api.GET("/me", s.me, s.authenticated)
 	api.GET("/find/:param", s.find, s.authenticated)
 }
@@ -42,9 +40,10 @@ type UserMeResp struct {
 	User
 }
 
-func (s *UserService) me(c echo.Context) error {
+func (s *UserService) me(ec echo.Context) error {
+	c := ec.(*Context)
 	token := c.Get("token").(string)
-	t, err := s.ch.Token(token)
+	t, err := s.ch.UserToken(token)
 	if err != nil {
 		return wrapForbiddenError(err)
 	}
@@ -52,7 +51,7 @@ func (s *UserService) me(c echo.Context) error {
 	if err != nil {
 		return wrapForbiddenError(err)
 	}
-	return c.JSON(http.StatusOK, UserMeResp{
+	return c.json(UserMeResp{
 		User{
 			ID:       t.ID,
 			Username: user.Username,
@@ -61,38 +60,12 @@ func (s *UserService) me(c echo.Context) error {
 	})
 }
 
-type UserRegReq struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-	Username string `json:"username"`
-}
-
-func (s *UserService) reg(c echo.Context) error {
-	// todo: make validate fields
-	// todo: check field length
-	var req UserRegReq
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-	if req.Login == "" || req.Password == "" || req.Username == "" {
-		return c.NoContent(http.StatusBadRequest)
-	}
-	if err := s.db.Users.Create(&storage.User{
-		Login:    req.Login,
-		Password: req.Password,
-		Username: req.Username,
-	}); err != nil {
-		return wrapError(ErrUserExist, "user is exist")
-	}
-
-	return c.NoContent(http.StatusNoContent)
-}
-
 type UsersFindResp struct {
 	User
 }
 
-func (s *UserService) find(c echo.Context) (err error) {
+func (s *UserService) find(ec echo.Context) (err error) {
+	c := ec.(*Context)
 	var user storage.User
 	param := c.Param("param")
 	id, err := strconv.ParseInt(param, 10, 64)
@@ -105,5 +78,5 @@ func (s *UserService) find(c echo.Context) (err error) {
 		return wrapNotFoundError(fmt.Errorf("user not found"))
 	}
 	u := newUser(user)
-	return c.JSON(http.StatusOK, u)
+	return c.json(u)
 }

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/kate-network/backend/storage"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -20,7 +21,9 @@ func (s *AuthService) Pref() string {
 func (s *AuthService) Setup(parent Service, api *echo.Group) {
 	s.Service = parent
 
-	api.POST("/user", s.user)
+	api.POST("/login", s.login)
+	api.POST("/signup", s.signup)
+	api.POST("/message", s.messages, s.authenticated)
 }
 
 type userAuthReq struct {
@@ -36,7 +39,8 @@ type UserAuthResp struct {
 	Scope int    `json:"scope"`
 }
 
-func (s *AuthService) user(c echo.Context) error {
+func (s *AuthService) login(ec echo.Context) error {
+	c := ec.(*Context)
 	var req userAuthReq
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -57,13 +61,13 @@ func (s *AuthService) user(c echo.Context) error {
 
 	scope := 32768 // 2^5
 	token := uuid.New().String()
-	t := cache.Token{
+	t := cache.UserToken{
 		Group: cache.TokenGroupUser,
 		ID:    user.ID,
 		Scope: scope,
 	}
 
-	if err := s.ch.SetToken(token, t); err != nil {
+	if err := s.ch.SetUserToken(token, t); err != nil {
 		return err
 	}
 
@@ -75,9 +79,53 @@ func (s *AuthService) user(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, UserAuthResp{
+	return c.json(UserAuthResp{
 		ID:    user.ID,
 		Token: token,
 		Scope: scope,
 	})
+}
+
+type AuthMessagesResp struct {
+	Token string `json:"token"`
+}
+
+func (s *AuthService) messages(ec echo.Context) error {
+	c := ec.(*Context)
+	userToken := c.Get("token").(string)
+	token := uuid.New().String()
+	if err := s.ch.SetMessageToken(token, userToken); err != nil {
+		return err
+	}
+	return c.json(AuthMessagesResp{
+		Token: token,
+	})
+}
+
+type AuthSignupReq struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
+func (s *AuthService) signup(ec echo.Context) error {
+	// todo: make validate fields
+	// todo: check field length
+	c := ec.(*Context)
+	var req AuthSignupReq
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if req.Login == "" || req.Password == "" || req.Username == "" {
+		return c.NoContent(http.StatusBadRequest)
+	}
+	if err := s.db.Users.Create(&storage.User{
+		Login:    req.Login,
+		Password: req.Password,
+		Username: req.Username,
+	}); err != nil {
+		return wrapError(ErrUserExist, "user is exist")
+	}
+
+	return c.nocontent()
 }

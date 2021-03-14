@@ -11,8 +11,9 @@ const (
 )
 
 const (
-	redisTokenExpiration      = 48 * time.Hour
-	redisTokenCountExpiration = 0
+	redisUserTokenExpiration    = 48 * time.Hour
+	redisMessageTokenExpiration = 10 * time.Second
+	redisTokenCountExpiration   = 0
 )
 
 type Cache struct {
