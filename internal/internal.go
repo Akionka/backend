@@ -56,7 +56,7 @@ func (s *Service) Init() {
 	apiGroup := s.e.Group("/api")
 	s.e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Token"},
 		AllowCredentials: true,
 	}))
 	s.e.HTTPErrorHandler = s.handlerError
