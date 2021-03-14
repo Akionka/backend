@@ -114,10 +114,10 @@ func (s *AuthService) signup(ec echo.Context) error {
 	c := ec.(*Context)
 	var req AuthSignupReq
 	if err := c.Bind(&req); err != nil {
-		return err
+		return wrapError(ErrRequiredFields, "login, password or username is empty")
 	}
 	if req.Login == "" || req.Password == "" || req.Username == "" {
-		return c.NoContent(http.StatusBadRequest)
+		return wrapError(ErrRequiredFields, "login, password or username is empty")
 	}
 	if err := s.db.Users.Create(&storage.User{
 		Login:    req.Login,
