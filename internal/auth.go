@@ -105,7 +105,6 @@ func (s *AuthService) messages(ec echo.Context) error {
 type AuthSignupReq struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
-	Username string `json:"username"`
 }
 
 func (s *AuthService) signup(ec echo.Context) error {
@@ -114,15 +113,14 @@ func (s *AuthService) signup(ec echo.Context) error {
 	c := ec.(*Context)
 	var req AuthSignupReq
 	if err := c.Bind(&req); err != nil {
-		return wrapError(ErrRequiredFields, "login, password or username is empty")
+		return wrapError(ErrRequiredFields, "login or password is empty")
 	}
-	if req.Login == "" || req.Password == "" || req.Username == "" {
-		return wrapError(ErrRequiredFields, "login, password or username is empty")
+	if req.Login == "" || req.Password == "" {
+		return wrapError(ErrRequiredFields, "login or password is empty")
 	}
 	if err := s.db.Users.Create(&storage.User{
 		Login:    req.Login,
 		Password: req.Password,
-		Username: req.Username,
 	}); err != nil {
 		return wrapError(ErrUserExist, "user is exist")
 	}
