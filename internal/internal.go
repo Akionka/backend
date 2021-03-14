@@ -65,7 +65,7 @@ func (s *Service) Init() {
 	s.e.Use(fixContext)
 	s.e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "UserToken"},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Token"},
 		AllowCredentials: true,
 	}))
 	s.e.HTTPErrorHandler = s.handlerError
@@ -111,7 +111,7 @@ func (c *Context) json(i interface{}) error {
 }
 
 func (c *Context) nocontent() error {
-	return c.JSON(http.StatusOK, &Response{Response: make([]byte, 0), Ok: true})
+	return c.JSON(http.StatusOK, &Response{Response: []byte("{}"), Ok: true})
 }
 
 func (s *Service) Listen(address string) error {
@@ -170,9 +170,9 @@ func (s *Service) handlerError(err error, c echo.Context) {
 			Message: pointer.ToString(he.Message.(string)),
 		})
 	} else if he, ok := err.(*Error); ok {
-		err = c.String(http.StatusConflict, he.Error())
+		err = c.String(http.StatusOK, he.Error())
 	} else {
-		err = c.JSON(http.StatusInternalServerError, Response{
+		err = c.JSON(http.StatusOK, Response{
 			Code:    pointer.ToInt(ErrSystemError),
 			Message: pointer.ToString(err.Error()),
 		})
