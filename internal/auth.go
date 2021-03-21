@@ -52,11 +52,11 @@ func (s *AuthService) login(ec echo.Context) error {
 
 	user, err := s.db.Users.ByLogin(req.Login)
 	if err != nil {
-		return wrapNotFoundError(fmt.Errorf("user is not exist"))
+		return wrapNotFoundError(fmt.Errorf("user does not exist"))
 	}
 
 	if user.Password != req.Password {
-		return wrapNotFoundError(fmt.Errorf("user is not exist"))
+		return wrapNotFoundError(fmt.Errorf("user does not exist"))
 	}
 
 	scope := 32768 // 2^5
@@ -122,7 +122,7 @@ func (s *AuthService) signup(ec echo.Context) error {
 		Login:    req.Login,
 		Password: req.Password,
 	}); err != nil {
-		return wrapError(ErrUserExist, "user is exist")
+		return wrapError(ErrUserExist, "user exists")
 	}
 
 	return c.nocontent()
