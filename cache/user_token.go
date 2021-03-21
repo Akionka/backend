@@ -14,6 +14,9 @@ type UserToken struct {
 
 func (t *UserToken) Parse(s string) {
 	str := strings.Split(s, "|")
+	if len(str) < 3 {
+		return
+	}
 	t.Group = str[0]
 	t.ID, _ = strconv.ParseInt(str[1], 10, 64)
 	scope, _ := strconv.ParseInt(str[2], 10, 64)
